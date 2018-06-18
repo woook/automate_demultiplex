@@ -59,6 +59,9 @@ upload_agent = "/home/mokaguys/Documents/apps/dnanexus-upload-agent-1.5.17-linux
 mokapipe_pipeline_ID = "2209"
 # Current MokaWES ID
 mokawes_pipeline_ID = "2210"
+# current nanopore workflow id
+mokaPORE_pipeline_ID=9999
+
 # -- Moka WES test status--
 # Test Status = NextSEQ sequencing
 mokastat_nextsq_ID = "1202218804"
@@ -218,6 +221,10 @@ max_number_of_attempts = 10
 missing_files_output = "missing_files.txt"
 # files to exclude from integrity check
 exclude = ["RTAStart.bat", "CorrectedIntMetrics.bin", "EmpiricalPhasingMetrics.bin", "ErrorMetrics.bin", "EventMetrics.bin", "ExtractionMetrics.bin", "PFGridMetrics.bin", "QMetrics.bin", "RegistrationMetrics.bin", "TileMetrics.bin", "000_000_000_na_rtabat.trans", "FilesAdded.csv", "FilesCopied.csv", "md5checksum.txt", missing_files_output]
+
+# ================ Sequencer names
+illumina_machines = ["M02353","NB551068","M02631"]
+
 # ================ demultiplexing 
 logfile_success = "Processing completed with 0 errors and 0 warnings."
 

@@ -214,9 +214,24 @@ class upload2Nexus():
         self.headers={"Authorization": "Bearer "+smartsheet_api_key,"Content-Type": "application/json"}
         self.url='https://api.smartsheet.com/2.0/sheets/'+str(smartsheet_sheetid)
 
+        # nanopore run?
+        self.nanopore=""
+
+    def identify_nanopore(self):
+        '''
+        Looking the the name of the runfolder, identifies if it is a nanopore run or not.
+        '''
+        # NANOPORE TO DO
+        for sequencer_name in illumina_machines:
+            if sequencer_name in self.runfolder:
+                return False
+        return True
 
     def already_uploaded(self, runfolder, now):
         '''check folder hasn't already been uploaded'''
+        # set nanopore flag
+        self.nanopore = self.identify_nanopore       
+        
         #capture timestamp
         self.now=now
         
@@ -231,7 +246,6 @@ class upload2Nexus():
         self.runfolderpath = runfolders + "/" + self.runfolder
        
         self.upload_agent_script_logfile.write("automate_demultiplexing release:"+script_release+"\n----------------------" + str('{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())) + "----------------------\nAssessing " + self.runfolderpath + "\n\n----------------------HAS THIS FOLDER ALREADY BEEN UPLOADED?----------------------\n")
-        #print "looking at runfolder "+runfolder
          
         #look for the file denoting the upload has started
         if os.path.isfile(self.runfolderpath + "/" + upload_started_file):
@@ -248,30 +262,68 @@ class upload2Nexus():
         
     def demultiplex_completed_successfully(self):
         '''check if the demultiplexing finished successfully by reading the last line of the demultiplex log'''
-        
-        #check demultiplexing has actually been done
-        if os.path.isfile(runfolders + "/" + self.runfolder + "/" + self.demultiplexed):
-            #open log file
-            logfile = open(runfolders + "/" + self.runfolder + "/" + self.demultiplexed,'r')
+        # if it's a nanopore run demultiplexing will not have happened.
+        if not self.nanopore:
+            #check demultiplexing has actually been done
+            if os.path.isfile(runfolders + "/" + self.runfolder + "/" + self.demultiplexed):
+                #open log file
+                logfile = open(runfolders + "/" + self.runfolder + "/" + self.demultiplexed,'r')
+                
+                #find the last line of the demultiplexing log file
+                lastline = ""
+                for i in logfile:
+                    lastline = i
+                
+                # check if the success statement is in the last line
+                if  logfile_success in lastline:
+                    self.upload_agent_script_logfile.write("Demultiplex was successfully completed.\ncompiling a list of fastqs....... ")
+                    #print "successfully demultiplexed"
+                    # if successfull call the module which creates a list of fastqs  
+                    self.find_fastqs()
+                else:
+                    #write to logfile that demultplex was not successful
+                    self.upload_agent_script_logfile.write("!!!!!!!DEMULTIPLEXING DID NOT COMPLETE SUCCESSFULLY.!!!!!!!!!\n----------------------STOP----------------------\n")
+        # if it is a nanopore run
+        elif:
+            # NANOPORE TO DO
+            self.find_fast5()
             
-            #find the last line of the demultiplexing log file
-            lastline = ""
-            for i in logfile:
-                lastline = i
-            
-            # check if the success statement is in the last line
-            if  logfile_success in lastline:
-                self.upload_agent_script_logfile.write("Demultiplex was successfully completed.\ncompiling a list of fastqs....... ")
-                #print "successfully demultiplexed"
-                # if successfull call the module which creates a list of fastqs  
-                self.find_fastqs()
-            else:
-                #write to logfile that demultplex was not successful
-                self.upload_agent_script_logfile.write("!!!!!!!DEMULTIPLEXING DID NOT COMPLETE SUCCESSFULLY.!!!!!!!!!\n----------------------STOP----------------------\n")
+            # ADD LOG FILE NOTES
         else:
             # write to logfile that not yet demultiplexed
             self.upload_agent_script_logfile.write("demultiplexing has not been performed.\n----------------------STOP----------------------\n")
-            
+    
+    def find_fast5(self):
+        '''
+        '''
+        # NANOPORE TO DO
+
+        #define:
+        # fast5 file location
+        self.fast5_dict={}
+        # list of fast5 file names
+        for file in fast5_location:
+            # rename fast5s
+            new_file_name=self.rename_fast5(file)
+            # create dict of filenames
+            self.fast5_dict[file]=new_file_name
+        
+        #build the file path with WES batch and NGS run numbers
+        self.create_nexus_file_path()
+
+        #create nexus project
+        self.create_project()
+        
+        # send list to module to trigger upload
+        self.upload()   
+
+    def rename_fast5(self, fast5_name):
+        #do something to fast5_name
+        
+        # NANOPORE TO DO
+        return new_fast5_name
+
+
     def find_fastqs(self):
         ''' find all the fastqs and send them to the upload command'''
         
@@ -341,8 +393,9 @@ class upload2Nexus():
                 self.upload_agent_script_logfile.write(str(to_be_nexified) + " fastqs found.\nSome fastq files contained an unrecognised panel number: " + ",".join(not_processed) + "\n\n----------------------PREPARING UPLOAD OF FASTQS----------------------\ndefining path for fastq files.......")
             else:
                 self.upload_agent_script_logfile.write(str(to_be_nexified) + " fastqs found.\n\n----------------------PREPARING UPLOAD OF FASTQS----------------------\ndefining path for fastq files.......")
-            #build the file path with WES batch and NGS run numbers
-            self.create_nexus_file_path()
+            
+            #build the Nexus file paths and project name
+            self.create_nexus_file_path_nanopore()
 
             #create nexus project
             self.create_project()
@@ -350,11 +403,21 @@ class upload2Nexus():
             # send list to module to trigger upload
             self.upload()       
     
+    def create_nexus_file_path_nanopore(self):
+        # NANOPORE TO DO
+
+        # capture the run number from the sample or run folder name
+        # capture panel number - to direct workflow
+        
+        # self.nexus path
+        self.nexus_path = self.runfolder + "_" + self.NGS_run + "_" + self.wes_number + fastq_folder
+        #build project name
+        self.nexusproject = self.nexusproject+self.runfolder + "_" + self.NGS_run + "_" + self.wes_number
+
     def create_nexus_file_path(self):
         ''' get info from the fastq names to have a more informative folder structure within DNA nexus 
         want the ngs run number eg NGS95a and any wes batches eg WES_5
         example fastq name = NGS95a_13_94947_SW_WES_5_Pan493_S8_R2_001.fastq.gz'''
-        
         # a list to hold all the wes numbers
         WES_numbers = []
         # a list to hold all the NGS numbers
@@ -423,16 +486,30 @@ class upload2Nexus():
         #test dx toolkit installation
         self.test_dx_toolkit()
 
-        # build the nexus upload command                        
-        nexus_upload_command = self.restart_ua_1 + upload_agent + " --auth-token " + Nexus_API_Key + " --project " + self.nexusproject + "  --folder /" + self.nexus_path + " --do-not-compress --upload-threads 10" + self.fastq_string + self.restart_ua_2 % ("fastq files") 
-        
         # open a file to hold all the upload agent commands
         runfolder_upload_cmd_file = open(self.runfolderpath + "/" + runfolder_upload_cmds, 'w')
-        # write fastq upload commands and a way of distinguishing between upload of fastq and rest of runfolder
-        runfolder_upload_cmd_file.write("----------------------Upload of fastqs----------------------\n" + nexus_upload_command + "\n\n----------------------Upload rest of runfolder----------------------\n")
-        # print nexus_upload_command
-        #write to logfile
-        self.upload_agent_script_logfile.write("Uploading Fastqs to Nexus. See commands at "+self.runfolderpath + "/" + runfolder_upload_cmds + "\n\n----------------------CHECKING SUCCESSFUL UPLOAD OF FASTQS----------------------\n")
+        
+        if not self.nanopore:
+            # build the nexus upload command                        
+            nexus_upload_command = self.restart_ua_1 + upload_agent + " --auth-token " + Nexus_API_Key + " --project " + self.nexusproject + "  --folder /" + self.nexus_path + " --do-not-compress --upload-threads 10" + self.fastq_string + self.restart_ua_2 % ("fastq files") 
+            # write fastq upload commands and a way of distinguishing between upload of fastq and rest of runfolder
+            runfolder_upload_cmd_file.write("----------------------Upload of fastqs----------------------\n" + nexus_upload_command + "\n\n----------------------Upload rest of runfolder----------------------\n")
+            
+            #write to logfile
+            self.upload_agent_script_logfile.write("Uploading Fastqs to Nexus. See commands at " + self.runfolderpath + "/" + runfolder_upload_cmds + "\n\n----------------------CHECKING SUCCESSFUL UPLOAD OF FASTQS----------------------\n")
+
+        else:
+            # NANOPORE TO DO
+
+            # build the nexus upload command for the fast5 files
+            #
+            ####nexus_upload_command = self.restart_ua_1 + upload_agent + " --auth-token " + Nexus_API_Key + " --project " + self.nexusproject + "  --folder /" + self.nexus_path + " --do-not-compress --upload-threads 10" + self.fastq_string + self.restart_ua_2 % ("fastq files") 
+            
+            # write fastq upload commands and a way of distinguishing between upload of fastq and rest of runfolder
+            runfolder_upload_cmd_file.write("----------------------Upload of Fast5 files----------------------\n" + nexus_upload_command + "\n\n----------------------Upload rest of runfolder----------------------\n")
+            
+            #write to logfile
+            self.upload_agent_script_logfile.write("Uploading Fast5 files to Nexus. See commands at " + self.runfolderpath + "/" + runfolder_upload_cmds + "\n\n----------------------CHECKING SUCCESSFUL UPLOAD OF FAST5 FILES----------------------\n")
         
         # open file to show upload has started and to hold upload agent standard out
         upload_started = open(self.runfolderpath + "/" + upload_started_file, 'a')
@@ -601,81 +678,88 @@ class upload2Nexus():
         
         #write command to log file
         self.DNA_Nexus_bash_script.write(self.source_command)
-        
+
         # initilise list of oncology fastq
         list_onco_fastq =[]
         
-        #loop through list of fastq files
-        for fastq in self.list_of_samples:
-            #take read one
-            if "_R1_" in fastq:
-                #assign read1
-                read1 = self.nexus_path+"/"+fastq
-                # assign read2 by replacing R1 with R2
-                read2 = self.nexus_path+"/"+fastq.replace("_R1_", "_R2_")
-                
+        # NANOPORE TO DO
+        if self.nanopore:
+            # create the ALBACORE dx command
+                command = self.wes_command + fastqc1 + read1_cmd + fastqc2 + read2_cmd + iva_email_input + ingenuity_email+ self.dest + dest_cmd + self.token
 
-                #get panel name and bed file
-                for panel in panelnumbers:
-                    # add underscore to Pan number so Pan1000 is not true when looking for Pan100
-                    # Find oncology samples and generate a list of fastq to run through amplivar pipeline
-                    if panel + "_" in fastq and panel == "Pan1190":
-                        list_onco_fastq.append(read1)
-                        list_onco_fastq.append(read2)
-                        
-                    # Find NGS or WES samples
-                    elif panel + "_" in fastq:
-                        # build path in nexus to the relevant sambamba bed
-                        sambamba_bedfile = app_project + bedfile_folder + panel + "dataSambamba.bed"
-                        
-                        # specify moka vendor bedfile
-                        if panel == "Pan493":  # identify WES tests
-                            # skip for WES samples as mokavendor files are already specified in DNAnexus workflow for MokaWES
-                            pass
-                        elif panel == "Pan1620":  # Identify focused exome tests
-                            #specify this for the focused exome
-                            moka_vendor_bedfile = app_project + bedfile_folder + "UK_focused_exome_3_col.bed"
-                            #use the exome bedfile to calculate coverage
-                            sambamba_bedfile = app_project + bedfile_folder + "Pan493dataSambamba.bed"   
-                        else:
-                            # otherwise build path in nexus to the relevant bed file
-                            moka_vendor_bedfile = app_project + bedfile_folder + panel + "data.bed"
-
-                        # use same panelname to get the email which will be used to upload to IVA
-                        ingenuity_email = email_panel_dict[panel]
-
-                # Skip over Mokapipe command construstion for cancer samples.
-                if "Pan1190_" in fastq:
-                    pass       
-                
-                # Generate command to call MokaWES workflow for WES samples
-                elif "Pan493_" in fastq:
-                    # create the input command for the fastqc
-                    read1_cmd = self.nexusproject + ":" + read1
-                    read2_cmd = self.nexusproject + ":" + read2
+                self.dx_run.append(command)
+        else:
+            #loop through list of fastq files
+            for fastq in self.list_of_samples:
+                #take read one
+                if "_R1_" in fastq:
+                    #assign read1
+                    read1 = self.nexus_path+"/"+fastq
+                    # assign read2 by replacing R1 with R2
+                    read2 = self.nexus_path+"/"+fastq.replace("_R1_", "_R2_")
                     
-                    # set the destination command as the root of the project
-                    dest_cmd = self.nexusproject + ":/"
 
-                    # create the MokaWES dx command
-                    command = self.wes_command + fastqc1 + read1_cmd + fastqc2 + read2_cmd + iva_email_input + ingenuity_email+ self.dest + dest_cmd + self.token
-                     #add command for each pair of fastqs to a list 
-                    self.dx_run.append(command)
+                    #get panel name and bed file
+                    for panel in panelnumbers:
+                        # add underscore to Pan number so Pan1000 is not true when looking for Pan100
+                        # Find oncology samples and generate a list of fastq to run through amplivar pipeline
+                        if panel + "_" in fastq and panel == "Pan1190":
+                            list_onco_fastq.append(read1)
+                            list_onco_fastq.append(read2)
+                            
+                        # Find NGS or WES samples
+                        elif panel + "_" in fastq:
+                            # build path in nexus to the relevant sambamba bed
+                            sambamba_bedfile = app_project + bedfile_folder + panel + "dataSambamba.bed"
+                            
+                            # specify moka vendor bedfile
+                            if panel == "Pan493":  # identify WES tests
+                                # skip for WES samples as mokavendor files are already specified in DNAnexus workflow for MokaWES
+                                pass
+                            elif panel == "Pan1620":  # Identify focused exome tests
+                                #specify this for the focused exome
+                                moka_vendor_bedfile = app_project + bedfile_folder + "UK_focused_exome_3_col.bed"
+                                #use the exome bedfile to calculate coverage
+                                sambamba_bedfile = app_project + bedfile_folder + "Pan493dataSambamba.bed"   
+                            else:
+                                # otherwise build path in nexus to the relevant bed file
+                                moka_vendor_bedfile = app_project + bedfile_folder + panel + "data.bed"
 
-                # Set Mokapipe command for all other samples
-                else:        
-                    # create the input command for the fastqc and BWA inputs
-                    read1_cmd = self.nexusproject + ":" + read1
-                    read2_cmd = self.nexusproject + ":" + read2
+                            # use same panelname to get the email which will be used to upload to IVA
+                            ingenuity_email = email_panel_dict[panel]
 
-                    # set the destination command as the root of the project
-                    dest_cmd = self.nexusproject + ":/"
-
-                    # create the dx command
-                    command = self.base_command + fastqc1 + read1_cmd + fastqc2 + read2_cmd + sambamba_input + sambamba_bedfile + mokavendor_input + moka_vendor_bedfile + iva_email_input + ingenuity_email+ self.dest + dest_cmd + self.token
+                    # Skip over Mokapipe command construstion for cancer samples.
+                    if "Pan1190_" in fastq:
+                        pass       
                     
-                    #add command for each pair of fastqs to a list 
-                    self.dx_run.append(command)
+                    # Generate command to call MokaWES workflow for WES samples
+                    elif "Pan493_" in fastq:
+                        # create the input command for the fastqc
+                        read1_cmd = self.nexusproject + ":" + read1
+                        read2_cmd = self.nexusproject + ":" + read2
+                        
+                        # set the destination command as the root of the project
+                        dest_cmd = self.nexusproject + ":/"
+
+                        # create the MokaWES dx command
+                        command = self.wes_command + fastqc1 + read1_cmd + fastqc2 + read2_cmd + iva_email_input + ingenuity_email+ self.dest + dest_cmd + self.token
+                        #add command for each pair of fastqs to a list 
+                        self.dx_run.append(command)
+
+                    # Set Mokapipe command for all other samples
+                    else:        
+                        # create the input command for the fastqc and BWA inputs
+                        read1_cmd = self.nexusproject + ":" + read1
+                        read2_cmd = self.nexusproject + ":" + read2
+
+                        # set the destination command as the root of the project
+                        dest_cmd = self.nexusproject + ":/"
+
+                        # create the dx command
+                        command = self.base_command + fastqc1 + read1_cmd + fastqc2 + read2_cmd + sambamba_input + sambamba_bedfile + mokavendor_input + moka_vendor_bedfile + iva_email_input + ingenuity_email+ self.dest + dest_cmd + self.token
+                        
+                        #add command for each pair of fastqs to a list 
+                        self.dx_run.append(command)
 
         # if oncology samples present, construct Amplivar dx run command inputs
         if len(list_onco_fastq) > 1: 
@@ -713,33 +797,40 @@ class upload2Nexus():
         # capture the workflow used for notification email
         app = ""
         for command in self.dx_run:
-            # write command to log file
-            self.DNA_Nexus_bash_script.write(command + "\n")
-            # write line to append job id to depends_list
-            self.DNA_Nexus_bash_script.write(self.depends_list + "\n")
-            # Identify and capture the workflow for cancer samples for notification email
-            if "Pan1190_" in command:
-                workflow = onco_path.replace("Workflows/","") # file structure not required for email notification, only keep the workflow name  
-            # Identify and capture the workflow for WES samples for notification email.
-            elif "Pan493_" in command:
-                # Update Flags to call additional apps
-                cancer = False
-                WES = True
-                workflow = wes_path.replace("Workflows/","")  # file structure not required for email notification, only keep the workflow name
-            else:  # Capture workflow for all other tests for notification email
-                # Update Flags to call additional apps
-                cancer = False
-                workflow = workflow_path.replace("Workflows/","")  # file structure not required for email notification, only keep the workflow name
-            # Generate the workflow string to be included in email
-            if workflow in app:
-                pass
+            if self.nanopore:
+                # NANOPORE TO DO
             else:
-                if len(app) > 1:
-                    app = app + " and " + workflow
+                # write command to log file
+                self.DNA_Nexus_bash_script.write(command + "\n")
+                # write line to append job id to depends_list
+                self.DNA_Nexus_bash_script.write(self.depends_list + "\n")
+                # Identify and capture the workflow for cancer samples for notification email
+                if "Pan1190_" in command:
+                    workflow = onco_path.replace("Workflows/","") # file structure not required for email notification, only keep the workflow name  
+                # Identify and capture the workflow for WES samples for notification email.
+                elif "Pan493_" in command:
+                    # Update Flags to call additional apps
+                    cancer = False
+                    WES = True
+                    workflow = wes_path.replace("Workflows/","")  # file structure not required for email notification, only keep the workflow name
+                else:  # Capture workflow for all other tests for notification email
+                    # Update Flags to call additional apps
+                    cancer = False
+                    workflow = workflow_path.replace("Workflows/","")  # file structure not required for email notification, only keep the workflow name
+                # Generate the workflow string to be included in email
+                if workflow in app:
+                    pass
                 else:
-                    app = workflow
-
-        if not cancer: # use flags to generate multiqc command for all non-cancer samples. 
+                    if len(app) > 1:
+                        app = app + " and " + workflow
+                    else:
+                        app = workflow
+        
+        
+        if self.nanopore:
+            # NANOPORE TO DO
+            # any apps that run at end. eg multiqc
+        elif not cancer: # use flags to generate multiqc command for all non-cancer samples. 
             # generate peddy for WES samples only
             if WES:    
                 # build peddy command - eg command = dx run peddy -iproject_for_peddy = 002_170222_ALEDTEST --project project-F2fpzp80P83xBBJy8F1GB2Zb -y --depends-on $jobid
@@ -770,7 +861,7 @@ class upload2Nexus():
         self.upload_agent_script_logfile.write("dx run commands issued - see " + self.bash_script + "\nMultiQC and Smartsheet complete apps set with the project id:" + self.projectid.rstrip() + "\n\njob ids captured from standard out:\n")
         
         # run a command to execute the bash script made above
-        cmd="bash " + self.bash_script
+        cmd = "bash " + self.bash_script
 
         if not debug:
             # execute command
@@ -782,7 +873,7 @@ class upload2Nexus():
             out = "x"
             err = ""
 
-        #capture standard out (the job ids) to the log file
+        # capture standard out (the job ids) to the log file
         self.upload_agent_script_logfile.write(out)
               
         # if any standard error
@@ -835,6 +926,14 @@ class upload2Nexus():
             for DNA in set(self.list_of_DNA_numbers_nonWES):
                 # build the rest of the sql update query
                 sql.append("insert into NGSCustomRuns(DNAnumber,PipelineVersion) values ('" + DNA + "','" + mokapipe_pipeline_ID + "')")
+
+        if self.nanopore:
+            # NANOPORE TO DO
+            # create a way to store workflow used in moka
+            # mokaPORE_workflow_id #(in config file)
+            for fast5 in self.fast5_dict:
+                query=""
+                sql.append(query)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~ TODO ~~~~~~~~~~~~~~~~~~~~~~~~
         # Generate SQL for cancer samples.
@@ -900,9 +999,12 @@ class upload2Nexus():
 
         #create temp bash_script
         temp_bash=self.runfolderpath + "/temp_" + runfolder_upload_cmds.replace('.txt','.sh')
+        
         # open temp file containing upload agent commands
         temp_runfolder_upload_cmd_file = open(temp_bash, 'w')
 
+        # NANOPORE TO DO
+        # does this samplesheet exist/match the naming?
         # create the samplesheet name to copy
         samplesheet_name=self.runfolder+"_SampleSheet.csv"
         
@@ -911,38 +1013,46 @@ class upload2Nexus():
 
         # write to the log file that samplesheet was copied and runfolder is being uploaded, linking to log files for cmds and stdout
         self.upload_agent_script_logfile.write("Copied samplesheet to runfolder\nUploading rest of run folder to Nexus using commands in "+self.runfolderpath + "/" + runfolder_upload_cmds +"\nsee standard out from these commands in log file @ "+self.runfolderpath + "/" + upload_started_file+"\n\n----------------CHECKING SUCCESSFUL UPLOAD OF RUNFOLDER----------------\n")
-
-        # loop through the run folder
-        for root, subFolder, files in os.walk(self.runfolderpath):
-            # for every file 
-            for item in files:
-                # capture the path
-                path=str(os.path.join(root,item))
-                
-                # skip image files
-                if "/L00" in path:
-                    pass
-                #skip fastq files already uploaded
-                elif path.endswith(".fastq.gz"):
-                    pass
-                # skip log files still being written to
-                elif path.endswith(upload_started_file) or path.endswith(temp_bash) or path.endswith(runfolder_upload_cmds) :
-                    pass
-                # skip samplesheet
-                elif path.endswith("SampleSheet.csv"):
-                    pass
-                # otherwise upload
-                else:
-                    # Use path to build desitnation folder within nexus. put in quotations to avoid weird characters and spaces
-                    path_to_upload="'"+path+"'"
-                    #remove the project prefix (002_), the path to the runfolders ("/media/data1/share") and the file name
-                    path_for_nexus=path.replace(self.runfolder,self.nexusproject.replace(NexusProjectPrefix,"")).replace(runfolders,"").replace(item,"")
-
-                    # build the nexus upload command                        
-                    nexus_upload_command = self.restart_ua_1 + upload_agent + " --auth-token "+Nexus_API_Key+" --project "+ self.nexusproject +"  --folder " + path_for_nexus + " --do-not-compress --upload-threads 10 " + path_to_upload + self.restart_ua_2 % (path_to_upload)
+        
+        if self.nanopore:
+        # NANOPORE TO DO
+            # create a bash script which uploads rest of runfolder
+            # copy the command to the temporary cmd file
+            temp_runfolder_upload_cmd_file.write(nexus_upload_command+"\n")
+        # backup rest of the run folder.
+        else:
+            # loop through the run folder
+            for root, subFolder, files in os.walk(self.runfolderpath):
+                # for every file 
+                for item in files:
+                    # capture the path
+                    path=str(os.path.join(root,item))
                     
-                    # copy the command to the temporary cmd file
-                    temp_runfolder_upload_cmd_file.write(nexus_upload_command+"\n")
+                    # skip image files
+                    if "/L00" in path:
+                        pass
+                    #skip fastq files already uploaded
+                    elif path.endswith(".fastq.gz"):
+                        pass
+                    # skip log files still being written to
+                    elif path.endswith(upload_started_file) or path.endswith(temp_bash) or path.endswith(runfolder_upload_cmds) :
+                        pass
+                    # skip samplesheet
+                    elif path.endswith("SampleSheet.csv"):
+                        pass
+                    # otherwise upload
+                    else:
+                        # Use path to build desitnation folder within nexus. put in quotations to avoid weird characters and spaces
+                        path_to_upload="'"+path+"'"
+                        #remove the project prefix (002_), the path to the runfolders ("/media/data1/share") and the file name
+                        path_for_nexus=path.replace(self.runfolder,self.nexusproject.replace(NexusProjectPrefix,"")).replace(runfolders,"").replace(item,"")
+
+                        # build the nexus upload command                        
+                        nexus_upload_command = self.restart_ua_1 + upload_agent + " --auth-token "+Nexus_API_Key+" --project "+ self.nexusproject +"  --folder " + path_for_nexus + " --do-not-compress --upload-threads 10 " + path_to_upload + self.restart_ua_2 % (path_to_upload)
+                        
+                        # copy the command to the temporary cmd file
+                        temp_runfolder_upload_cmd_file.write(nexus_upload_command+"\n")
+        
         temp_runfolder_upload_cmd_file.close()
         
 
