@@ -83,7 +83,7 @@ onco_path = "Workflows/Mokaonc_v1.3"
 # path to paddy app
 peddy_path = "Apps/peddy_v1.2"
 # path to multiqc app
-multiqc_path = "Apps/multiqc_v1.6"
+multiqc_path = "Apps/multiqc_v1.5"
 # smartsheet app
 smartsheet_path = "Apps/smartsheet_mokapipe_complete_v1.1"
 # RPKM path
