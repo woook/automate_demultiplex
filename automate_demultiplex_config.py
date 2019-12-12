@@ -230,7 +230,7 @@ iva_reference_default = "GRCh37"
 
 
 # =====Dict linking panel numbers for +/-10 and CNVs=====
-panel_list=["Pan493","Pan1009", "Pan1063","Pan1620", "Pan1157","Pan1190","Pan2684","Pan3237","Pan1449","Pan1451","Pan1453","Pan1459","Pan2022","Pan1965","Pan1158","Pan1159","Pan1646","Pan3220","Pan3221"]
+panel_list=["Pan493","Pan1009", "Pan1063","Pan1620", "Pan1157","Pan1190","Pan2684","Pan3237","Pan1449","Pan1451","Pan1453","Pan1459","Pan2022","Pan1965","Pan1158","Pan1159","Pan1646","Pan3320","Pan3321"]
 default_panel_properties = {
                     "UMI":False,
                     "UMI_bcl2fastq":None, # eg Y145,I8,Y9I8,Y145
@@ -283,6 +283,7 @@ panel_settings = {"Pan493": {
                 "Pan2684": {
                     "RPKM_bedfile_pan_number":None,
                     "mokaamp":True,
+                    "oncology":True,
                     "capture_type":"Amplicon",
                     "iva_upload": True,
                     "oncology":False,
@@ -303,7 +304,8 @@ panel_settings = {"Pan493": {
                     "RPKM_bedfile_pan_number":"Pan1450",
                     "RPKM_also_analyse":["Pan1449"],
                     "sapientia_upload": True,
-                    "sapientia_project":261,
+                    #"sapientia_project":"228",#live service
+                    "sapientia_project":261, # testing
                     "hsmetrics_bedfile":"Pan1449", # only when using bed file with a different pannumber 
                     "sambamba_bedfile":"Pan1449" # only when using bed file with a different pannumber 
                     },
