@@ -24,7 +24,7 @@ def get_arguments():
     parser = argparse.ArgumentParser(description='given an analysis-id will obtain the job ids for bam and vcf files for upload to the specified decision support tool')
     # Define the arguments that will be taken.
     parser.add_argument('-a', '--analysis_id', required=True, help='workflow Analysis ID in format Analysis-abc123')
-    parser.add_argument('-t', '--tool', choices=['iva', 'sapientia'], required=True, help='decision support tool (iva or sapientia)')
+    parser.add_argument('-t', '--tool', choices=['iva_mokawes', 'iva_mokapipe', 'sapientia'], required=True, help='decision support tool (iva or sapientia)')
     parser.add_argument('-p', '--project',  required=True, help='The DNAnexus project id in which the analysis is running')
     # Return the arguments
     return parser.parse_args()
@@ -61,7 +61,7 @@ class DecisionTooler():
     def __init__(self):
         pass
 
-    def _get_mokawes_jobid(self, analysis_id, project):
+    def _get_jobid(self, analysis_id, project, workflow_name):
         # obtain json for dx describe on the given analysis id
         cmd = "source /etc/profile.d/dnanexus.environment.sh; dx describe %s:%s --json --auth-token %s " % (project,analysis_id, config.Nexus_API_Key)
 
@@ -78,10 +78,14 @@ class DecisionTooler():
                 (out, err) = proc.communicate()
                 json_ob=json.loads(out)
                 for stage in json_ob["stages"]:
-                    if stage["execution"]["stage"] in config.wes_sention_samplename:
-                        # Outputs from the sention job in the workflow/analysis are linked to a sub-job.
-                        # The ID for the sub-job can be pulled from the first dependsOn field of the sention job.
-                        return stage['execution']['dependsOn'][0]
+                    if workflow_name == "mokawes":
+                        if stage["execution"]["stage"] in config.wes_sention_samplename:
+                            # Outputs from the sention job in the workflow/analysis are linked to a sub-job.
+                            # The ID for the sub-job can be pulled from the first dependsOn field of the sention job.
+                            return stage['execution']['dependsOn'][0]
+                    elif workflow_name == "mokapipe":
+                        if config.mokapipe_variant_caller_stage in stage["id"]:
+                            return stage['execution']["id"]
                 else:
                     raise Exception('No stage found in job')
             except IndexError:
@@ -90,20 +94,33 @@ class DecisionTooler():
                     raise Exception('Maximum Tries Exceeded')
 
     def get_job_id(self, analysis_id, project, workflow):
-        if workflow.name == 'mokawes':
-            return self._get_mokawes_jobid(analysis_id, project)
+        return self._get_jobid(analysis_id, project, workflow.name)
+        
 
     def get_workflow(self, ps):
         if ps['mokawes']:
             return self.wfo('mokawes', config.mokawes_senteion_vcf_output_name, config.mokawes_senteion_bam_output_name, config.mokawes_senteion_bai_output_name)
+        if ps["mokapipe"]:
+            return self.wfo('mokapipe', config.mokapipe_vcf_output_name, config.mokapipe_bam_output_name, config.mokapipe_bai_output_name)
+        
 
-    def printer(self, workflow, tool):
-        if tool == "iva":
+
+
+
+    def printer(self, workflow, jobid, tool):
+        if tool == in ['iva_mokawes', 'iva_mokapipe']":
             print(
                 " %s%s:%s%s%s:%s%s%s:%s" % (
                 config.iva_vcf_inputname, jobid, workflow.vcf_out,
                 config.iva_bam_inputname, jobid, workflow.bam_out,
                 config.iva_bai_inputname, jobid, workflow.bai_out
+                )
+            )
+        if tool in ["sapientia"]:
+            print(
+                " %s%s:%s%s%s:%s" % (
+                config.sapientia_vcf_inputname, jobid, workflow.vcf_out,
+                config.sapientia_bam_inputname, jobid, workflow.bam_out,
                 )
             )
 
@@ -121,7 +138,7 @@ if __name__ == "__main__":
     tooler = DecisionTooler()
     workflow = tooler.get_workflow(pansettings)
     jobid = tooler.get_job_id(args.analysis_id, args.project, workflow)
-    tooler.printer(workflow, args.tool)
+    tooler.printer(workflow, jobid, args.tool)
 
     # if args.tool == "iva":
     #     jobid = get_sention_job_id(args.project, args.analysis_id)

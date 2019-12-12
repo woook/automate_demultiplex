@@ -916,7 +916,7 @@ class process_runfolder():
         A python script is run after each dx run command, taking the analysis id, project name and decision support tool and prints the required input to command line
         This function returns the command for this python program
         """
-        dx_command = "%s $jobid -t iva -p %s)" % (self.decision_support_preperation, self.runfolder_obj.nexus_project_name)
+        dx_command = "%s $jobid -t iva_mokawes -p %s)" % (self.decision_support_preperation, self.runfolder_obj.nexus_project_name)
         return dx_command
 
     def build_sapientia_input_command(self):

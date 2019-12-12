@@ -141,6 +141,7 @@ mokapipe_bwa_rg_sample = " -istage-Byz9BJ80jy1k2VB9xVXBp0Fg.read_group_sample=" 
 mokapipe_sambamba_input = " -istage-F35zBKQ0jy1XpfzYPZY4bgX6.sambamba_bed="  # Sambamba Bed file
 mokapipe_mokapicard_vendorbed_input = " -istage-F9GK4QQ0jy1qj14PPZxxq3VG.vendor_exome_bedfile="  # HSMetrics Bed file
 mokapipe_iva_email_input = " -istage-Byz9Bj80jy1k2VB9xVXBp0Fp.email="  # ingenuity email address
+mokapipe_variant_caller_stage = " -istage-F28y4qQ0jy1fkqfy5v2b8byx" # only used by decision support script
 
 # MokaWES workflow_inputs
 wes_fastqc1 = " -istage-Bz3YpP80jy1Y1pZKbZ35Bp0x.reads="  # FastQC Read 1
@@ -211,7 +212,6 @@ admin_users = ["mokaguys"]
 #list of oncology panels
 oncology_panels = ["Pan1190","Pan2684"]
 
-
 # =====Sapientia
 # list of St George's analyses, with the corresponding sapientia project-id as value
 decision_support_tool_input_script = "decision_support_tool_inputs.py"
@@ -219,6 +219,9 @@ decision_support_tool_input_script = "decision_support_tool_inputs.py"
 mokawes_senteion_bam_output_name = "mappings_realigned_bam" #ENSURE WE WANT REALIGNED NOT DEDUP BAM
 mokawes_senteion_bai_output_name = "mappings_realigned_bai"
 mokawes_senteion_vcf_output_name = "variants_vcf"
+mokapipe_bam_output_name = "bam" 
+mokapipe_bai_output_name = "bai"
+mokapipe_vcf_output_name = "vcf"
 sapientia_vcf_inputname = " -ivcfs="
 sapientia_bam_inputname = " -ibams="
 iva_vcf_inputname = " -ivcfs="
